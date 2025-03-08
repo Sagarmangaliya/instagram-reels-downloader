@@ -16,6 +16,12 @@ loader = instaloader.Instaloader()
 # Logging setup
 logging.basicConfig(level=logging.DEBUG)
 
+# Login to Instagram (replace with your credentials)
+try:
+    loader.login("rahultt.1", "Rahula2233@")
+except Exception as e:
+    logging.error(f"Login failed: {e}")
+
 @app.route("/")
 def home():
     return """
@@ -73,7 +79,7 @@ def home():
                     return;
                 }
 
-                fetch("https://instagram-reels-downloader-62id.onrender.com/download", {
+                fetch("/download", {
                     method: "POST",
                     body: JSON.stringify({ reel_url: url }),
                     headers: { "Content-Type": "application/json" },
@@ -123,6 +129,7 @@ def download_reel():
 
         # Find the downloaded file
         video_file = next((f for f in os.listdir(DOWNLOAD_FOLDER) if shortcode in f and f.endswith(".mp4")), None)
+        logging.debug(f"Files in download folder: {os.listdir(DOWNLOAD_FOLDER)}")
         logging.debug(f"Found video file: {video_file}")
 
         if not video_file:
