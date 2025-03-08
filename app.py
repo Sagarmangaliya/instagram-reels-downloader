@@ -79,7 +79,7 @@ def home():
                     return;
                 }
 
-                fetch("https://instagram-reels-downloader-iqb9.onrender.com/download", {
+                fetch("/download", {
                     method: "POST",
                     body: JSON.stringify({ reel_url: url }),
                     headers: { "Content-Type": "application/json" },
@@ -100,7 +100,7 @@ def home():
     </html>
     """
 
-@app.route("https://instagram-reels-downloader-iqb9.onrender.com/download", methods=["POST"])
+@app.route("/download", methods=["POST"])
 def download_reel():
     logging.debug("Received download request")
     data = request.get_json()
@@ -144,7 +144,7 @@ def download_reel():
         logging.error(f"Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route("https://instagram-reels-downloader-iqb9.onrender.com/downloads/<filename>")
+@app.route("/downloads/<filename>")
 def serve_video(filename):
     return send_from_directory(DOWNLOAD_FOLDER, filename)
 
