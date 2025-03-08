@@ -16,6 +16,12 @@ loader = instaloader.Instaloader()
 # Logging setup
 logging.basicConfig(level=logging.DEBUG)
 
+# Login to Instagram (replace with your credentials)
+try:
+    loader.login("rahulsnid", "Rahual11@")
+except Exception as e:
+    logging.error(f"Login failed: {e}")
+
 @app.route("/")
 def home():
     return """
