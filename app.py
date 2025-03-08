@@ -79,7 +79,7 @@ def home():
                     return;
                 }
 
-                fetch("/download", {
+                fetch("https://instagram-reels-downloader-62id.onrender.com/download", {
                     method: "POST",
                     body: JSON.stringify({ reel_url: url }),
                     headers: { "Content-Type": "application/json" },
