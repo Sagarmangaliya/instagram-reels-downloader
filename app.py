@@ -16,11 +16,11 @@ loader = instaloader.Instaloader()
 # Logging setup
 logging.basicConfig(level=logging.DEBUG)
 
-# Login to Instagram (replace with your credentials)
+# Load session from file
 try:
-    loader.login("rahulsnid", "Rahual11@")
+    loader.load_session_from_file("rahulsnid", "session")
 except Exception as e:
-    logging.error(f"Login failed: {e}")
+    logging.error(f"Failed to load session: {e}")
 
 @app.route("/")
 def home():
@@ -100,7 +100,7 @@ def home():
     </html>
     """
 
-@app.route("/download", methods=["POST"])
+@app.route("https://instagram-reels-downloader-iqb9.onrender.com/download", methods=["POST"])
 def download_reel():
     logging.debug("Received download request")
     data = request.get_json()
