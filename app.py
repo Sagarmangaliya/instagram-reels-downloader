@@ -1,8 +1,8 @@
 import os
 import logging
-import instaloader
 from flask import Flask, request, jsonify, send_from_directory
 from urllib.parse import urlparse
+from instagrapi import Client
 
 app = Flask(__name__)
 
@@ -10,17 +10,11 @@ app = Flask(__name__)
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# Initialize Instaloader
-loader = instaloader.Instaloader()
+# Initialize Instagrapi client
+client = Client()
 
 # Logging setup
 logging.basicConfig(level=logging.DEBUG)
-
-# Login to Instagram (replace with your credentials)
-try:
-    loader.login("rahultt.1", "Rahula2233@")
-except Exception as e:
-    logging.error(f"Login failed: {e}")
 
 @app.route("/")
 def home():
@@ -79,7 +73,7 @@ def home():
                     return;
                 }
 
-                fetch("https://instagram-reels-downloader-62id.onrender.com/download", {
+                fetch("/download", {
                     method: "POST",
                     body: JSON.stringify({ reel_url: url }),
                     headers: { "Content-Type": "application/json" },
@@ -111,34 +105,30 @@ def download_reel():
         return jsonify({"error": "Missing reel_url"}), 400
 
     try:
-        # Remove query parameters from the URL
+        # Extract shortcode from the URL
         parsed_url = urlparse(reel_url)
-        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
-        logging.debug(f"Cleaned URL: {clean_url}")
-
-        # Extract shortcode from the cleaned URL
-        shortcode = clean_url.strip("/").split("/")[-1]
+        shortcode = parsed_url.path.strip("/").split("/")[-1]
         logging.debug(f"Extracted shortcode: {shortcode}")
 
-        # Download the reel
-        post = instaloader.Post.from_shortcode(loader.context, shortcode)
-        logging.debug(f"Post object created: {post}")
+        # Fetch media info using Instagrapi
+        media = client.media_pk_from_code(shortcode)
+        media_info = client.media_info(media)
+        logging.debug(f"Media info: {media_info}")
 
-        loader.download_post(post, target=DOWNLOAD_FOLDER)
-        logging.debug("Reel downloaded successfully")
+        # Get the video URL
+        video_url = media_info.video_url
+        logging.debug(f"Video URL: {video_url}")
 
-        # Find the downloaded file
-        video_file = next((f for f in os.listdir(DOWNLOAD_FOLDER) if shortcode in f and f.endswith(".mp4")), None)
-        logging.debug(f"Files in download folder: {os.listdir(DOWNLOAD_FOLDER)}")
-        logging.debug(f"Found video file: {video_file}")
-
-        if not video_file:
-            return jsonify({"error": "Failed to download the video"}), 500
+        # Download the video
+        video_filename = f"{shortcode}.mp4"
+        video_path = os.path.join(DOWNLOAD_FOLDER, video_filename)
+        client.video_download(video_url, video_path)
+        logging.debug(f"Video downloaded to: {video_path}")
 
         # Return the video URL
         return jsonify({
             "message": "Download successful",
-            "download_url": f"/downloads/{video_file}"
+            "download_url": f"/downloads/{video_filename}"
         })
 
     except Exception as e:
