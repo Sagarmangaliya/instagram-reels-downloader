@@ -1,58 +1,64 @@
-# app.py (Backend - Flask)
-from flask import Flask, render_template, request
-import instaloader
+import requests
+from bs4 import BeautifulSoup
+import re
+import time
+import random
 from urllib.parse import urlparse
 
-app = Flask(__name__)
+def get_instagram_media(url):
+    # Rotating headers and delays to avoid detection
+    headers_list = [
+        {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept-Language": "en-US,en;q=0.5",
+        },
+        {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+    ]
 
-def is_instagram_url(url):
-    parsed = urlparse(url)
-    return parsed.netloc in ['www.instagram.com', 'instagram.com']
+    try:
+        # Validate URL
+        parsed = urlparse(url)
+        if not parsed.netloc in ['www.instagram.com', 'instagram.com']:
+            return {"error": "Invalid Instagram URL"}
 
-def get_shortcode_from_url(url):
-    path = urlparse(url).path.strip('/')
-    parts = path.split('/')
-    if len(parts) >= 2 and parts[0] in ['p', 'reel', 'tv']:
-        return parts[1]
-    return None
+        # Add random delay
+        time.sleep(random.uniform(1, 3))
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    error = None
-    media_urls = []
-    
-    if request.method == 'POST':
-        url = request.form.get('url', '').strip()
-        
-        if not url:
-            error = "Please enter a URL"
-        elif not is_instagram_url(url):
-            error = "Invalid Instagram URL"
-        else:
-            shortcode = get_shortcode_from_url(url)
-            if not shortcode:
-                error = "Could not extract post ID from URL"
-            else:
-                try:
-                    L = instaloader.Instaloader()
-                    post = instaloader.Post.from_shortcode(L.context, shortcode)
-                    
-                    if post.typename == 'GraphImage':
-                        media_urls.append(post.url)
-                    elif post.typename == 'GraphVideo':
-                        media_urls.append(post.video_url)
-                    elif post.typename == 'GraphSidecar':
-                        for node in post.get_sidecar_nodes():
-                            if node.is_video:
-                                media_urls.append(node.video_url)
-                            else:
-                                media_urls.append(node.display_url)
-                    else:
-                        error = "Unsupported post type"
-                except Exception as e:
-                    error = f"Error fetching post: {str(e)}"
+        # Make request with random headers
+        response = requests.get(
+            url,
+            headers=random.choice(headers_list),
+            timeout=10
+        )
 
-    return render_template('index.html', error=error, media_urls=media_urls)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            script_tag = soup.find('script', text=re.compile('window\.__additionalDataLoaded'))
+            
+            if script_tag:
+                # Extract JSON data
+                json_data = re.search(r'({.*});</script>', script_tag.string).group(1)
+                media_url = re.search(r'"video_url":"(https:\\/\\/.*?)"', json_data)
+                
+                if media_url:
+                    return {
+                        "url": media_url.group(1).replace('\\/', '/'),
+                        "type": "video"
+                    }
+                else:
+                    return {"error": "No video found in post"}
+            
+        elif response.status_code == 429:
+            return {"error": "Rate limited - try again later"}
+            
+        return {"error": "Content not found"}
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    except Exception as e:
+        return {"error": str(e)}
+
+# Example usage
+result = get_instagram_media("https://www.instagram.com/p/C_vJXR1yWZP/")
+print(result)
