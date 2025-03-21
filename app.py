@@ -51,7 +51,7 @@ def download_reel():
         }
 
         # Send POST request to saveig.app
-        response = requests.post('https://saveig.app/api/ajaxsearch', data=post_data, headers=headers)
+        response = requests.post('https://wp-json/visolix/api/download', data=post_data, headers=headers)
         response.raise_for_status()
         response_json = response.json()
         html_content = response_json.get('data', '')
