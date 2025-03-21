@@ -47,7 +47,7 @@ def download_reel():
         }
 
         # Send POST request to saveig.app
-        response = requests.post('https://saveig.app/api/ajaxsearch', data=post_data, headers=headers)
+        response = requests.post('https://saveig.in/wp-json/visolix/api/download', data=post_data, headers=headers)
         if response.status_code != 200:
             logging.error(f"Failed to fetch download link: {response.status_code}")
             return jsonify({"error": "Failed to fetch download link"}), 500
