@@ -1,17 +1,37 @@
+from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask_cors import CORS
+import os
+import logging
+import requests
+from bs4 import BeautifulSoup
+
+# Create the Flask app instance
+app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
+
+# Directory to store downloaded videos
+DOWNLOAD_FOLDER = "downloads"
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
+# Logging setup
+logging.basicConfig(level=logging.DEBUG)
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
 @app.route("/download", methods=["POST"])
 def download_reel():
     logging.debug("Received download request")
     data = request.get_json()
-    if not data:
-        logging.error("No JSON data received")
-        return jsonify({"error": "No data received"}), 400
-
     reel_url = data.get("reel_url")
-    if not reel_url or "instagram.com/reel/" not in reel_url:
-        logging.error("Invalid or missing reel_url")
-        return jsonify({"error": "Invalid Instagram Reel URL"}), 400
+    logging.debug(f"Reel URL: {reel_url}")
+
+    if not reel_url:
+        return jsonify({"error": "Missing reel_url"}), 400
 
     try:
+        # Extract shortcode from URL
         shortcode = reel_url.strip("/").split("/")[-1].split('?')[0]
         logging.debug(f"Extracted shortcode: {shortcode}")
 
@@ -72,3 +92,11 @@ def download_reel():
     except Exception as e:
         logging.error(f"Error in download_reel: {e}")
         return jsonify({"error": str(e)}), 500
+
+@app.route("/downloads/<filename>")
+def serve_video(filename):
+    return send_from_directory(DOWNLOAD_FOLDER, filename)
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  # Use PORT if provided, otherwise default to 5000
+    app.run(host="0.0.0.0", port=port, debug=False)  # Set debug=False for production
